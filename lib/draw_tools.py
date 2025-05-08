@@ -444,12 +444,28 @@ def format_clock(clock_str):
 def draw_clock(clock_str):
     if not isinstance(clock_str, str) or not clock_str:
         clock_str = "12:00"  # Default fallback
-    
+
     # Case 1: Format is PT-style (NBA game clock)
     if "PT" in clock_str:
         clock_str = format_clock(clock_str)
 
-    # Case 2: AM/PM Clock
+    # Case 2: Convert "HH:MM UTC" or "HH:MM" (24-hour format) to AM/PM
+    if "UTC" in clock_str or (
+        ":" in clock_str and len(clock_str) == 5 and clock_str.count(":") == 1
+    ):
+        try:
+            clock_str = clock_str.replace(" UTC", "")
+            hour, minute = map(int, clock_str.split(":"))
+            am_pm = "AM" if hour < 12 else "PM"
+            hour = hour % 12
+            if hour == 0:
+                hour = 12
+            clock_str = f"{hour:02d}:{minute:02d} {am_pm}"
+        except ValueError as e:
+            print("UTC/24-hour time parse error:", e)
+            clock_str = "12:00 PM"
+
+    # Case 3: AM/PM Clock
     if "AM" in clock_str or "PM" in clock_str:
         try:
             time, am_pm = clock_str.split()
@@ -460,7 +476,7 @@ def draw_clock(clock_str):
             draw_colon(29, 31, 2)
             draw_number(minutes // 10, 33, 31, 2)
             draw_number(minutes % 10, 40, 31, 2)
-            
+
             if am_pm == "AM":
                 draw_a(48, 36, 1)
             else:
@@ -468,7 +484,7 @@ def draw_clock(clock_str):
         except ValueError as e:
             print("AM/PM time format error:", e)
 
-    # Case 3: MM:SS Clock
+    # Case 4: MM:SS Game Clock
     else:
         try:
             minutes, seconds = map(int, clock_str.split(":"))
@@ -486,83 +502,88 @@ def draw_clock(clock_str):
             draw_number(0, 34, 30, 2)
             draw_number(0, 42, 30, 2)
 
-
 # Draws the game date on the display.
 # The game date is converted into individual digits and separated by dashes.
 def draw_date(game_date):
-    days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-    game_year = 25
-    game_month = 1
-    game_day = 1
+    try:
+        year_str, month_str, day_str = game_date.split("-")
 
-    for days in days_in_month:
-        if game_date < days:
-            game_day = game_date
-            break
-        game_date = game_date - days
-        game_month = game_month + 1
-    game_month = game_month - 1
+        year = int(year_str[-2:])
+        month = int(month_str)
+        day = int(day_str)
 
-    game_month_tens = game_month // 10
-    game_month_ones = game_month % 10
-    game_day_tens = game_day // 10
-    game_day_ones = (game_day % 10)
-    game_year_tens = game_year // 10
-    game_year_ones = game_year % 10
+        game_month_tens = month // 10
+        game_month_ones = month % 10
+        game_day_tens = day // 10
+        game_day_ones = day % 10
+        game_year_tens = year // 10
+        game_year_ones = year % 10
 
-    if game_month_tens > 0:
-        draw_number(game_month_tens, 1, 50, 2)
-    draw_number(game_month_ones, 7, 50, 2)
-    draw_dash(16, 50, 2)
-    if game_day_tens > 0:
-        draw_number(game_day_tens, 21, 50, 2)
-    draw_number(game_day_ones, 28, 50, 2)
-    draw_dash(37, 50, 2)
-    if game_year_tens > 0:
-        draw_number(game_year_tens, 42, 50, 2)
-    draw_number(game_year_ones, 49, 50, 2)
+        if game_month_tens > 0:
+            draw_number(game_month_tens, 1, 50, 2)
+        draw_number(game_month_ones, 7, 50, 2)
+        draw_dash(16, 50, 2)
 
-# Draws a future game on the display by selecting team logos, game time, and date.
-def draw_future_game(game_date, game_time, game_location, game_opponent):
+        if game_day_tens > 0:
+            draw_number(game_day_tens, 21, 50, 2)
+        draw_number(game_day_ones, 28, 50, 2)
+        draw_dash(37, 50, 2)
+
+        if game_year_tens > 0:
+            draw_number(game_year_tens, 42, 50, 2)
+        draw_number(game_year_ones, 49, 50, 2)
+
+    except Exception as e:
+        print("draw_date format error:", e)
+
+
+
+def draw_future_game(game_date, game_time, game_opponent):
     teams = {
-        "Atlanta": hawks,
-        "Boston": celtics,
-        "Brooklyn": nets,
-        "Charlotte": hornets,
-        "Chicago": bulls,
-        "Cleveland": cavs,
-        "Dallas": mavericks,
-        "Denver": nuggets,
-        "Detroit": pistons,
-        "Golden State": warriors,
-        "Houston": rockets,
-        "Indiana": pacers,
+        "Atlanta Hawks": hawks,
+        "Boston Celtics": celtics,
+        "Brooklyn Nets": nets,
+        "Charlotte Hornets": hornets,
+        "Chicago Bulls": bulls,
+        "Cleveland Cavaliers": cavs,
+        "Dallas Mavericks": mavericks,
+        "Denver Nuggets": nuggets,
+        "Detroit Pistons": pistons,
+        "Golden State Warriors": warriors,
+        "Houston Rockets": rockets,
+        "Indiana Pacers": pacers,
         "Los Angeles Lakers": lakers,
         "Los Angeles Clippers": clippers,
-        "Memphis": grizzlies,
-        "Miami": heat,
-        "Milwaukee": bucks,
-        "Minnesota": timberwolves,
-        "New Orleans": pelicans,
-        "New York": knicks,
-        "Oklahoma City": thunder,
-        "Orlando": magic,
-        "Philadelphia": sixers,
-        "Phoenix": suns,
-        "Portland": trail_blazers,
-        "Sacramento": kings,
-        "San Antonio": spurs,
-        "Toronto": raptors,
-        "Utah": jazz,
-        "Washington": wizards
+        "Memphis Grizzlies": grizzlies,
+        "Miami Heat": heat,
+        "Milwaukee Bucks": bucks,
+        "Minnesota Timberwolves": timberwolves,
+        "New Orleans Pelicans": pelicans,
+        "New York Knicks": knicks,
+        "Oklahoma City Thunder": thunder,
+        "Orlando Magic": magic,
+        "Philadelphia 76ers": sixers,
+        "Phoenix Suns": suns,
+        "Portland Trail Blazers": trail_blazers,
+        "Sacramento Kings": kings,
+        "San Antonio Spurs": spurs,
+        "Toronto Raptors": raptors,
+        "Utah Jazz": jazz,
+        "Washington Wizards": wizards
     }
 
     opponent_team = teams.get(game_opponent)
+
+    if opponent_team is None:
+        print("Unknown opponent:", game_opponent)
+        return
 
     draw_logo(celtics, 0, 0, 0)
     draw_logo(opponent_team, 0, 0, 1)
     draw_clock(game_time)
     draw_date(game_date)
+
+
 
 def clear_area(bitmap, x, y, width, height):
     for i in range(x, x + width):

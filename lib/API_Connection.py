@@ -12,6 +12,8 @@ Author(s): Michael Ladderbush
 import wifi
 import socketpool
 import ssl
+import time
+import json
 import adafruit_requests
 from draw_tools import draw_future_game
 
@@ -60,19 +62,76 @@ def get_current_date():
     time_data = response.json()
     response.close()
 
-    # Extract the date portion ("YYYY-MM-DD") from the ISO datetime string.
-    current_date = time_data["datetime"]
-   
-    return current_date
+    # Extract date in format YYYY-MM-DD
+    datetime_str = time_data.get("datetime", "")  # e.g. "2025-05-08T14:15:22.123456-04:00"
+    date_str = datetime_str.split("T")[0]  # Just the "2025-05-08" part
+
+    return date_str
+
 
 def get_next_game():
-    formatted_time = get_current_date()
-    print(formatted_time)
+    team_id = 2  # Boston Celtics
+    start_date = get_current_date()
 
 
-def accept_IOS_input(str: http_request):
-    return http_request
+    url = (
+        "https://api.balldontlie.io/v1/games"
+        f"?team_ids[]={team_id}&start_date={start_date}"
+    )
 
+    headers = {
+        "Authorization": "Bearer 7b02b2a9-0b96-4f6f-9ab1-1b14f14abb9f"
+    }
+
+    try:
+        response = requests.get(url, headers=headers)
+        raw_text = response.text
+        response.close()
+
+        if not raw_text:
+            print("Empty response from server.")
+            return
+
+        try:
+            data = json.loads(raw_text)
+        except Exception as e:
+            print("JSON parse error:", e)
+            print("Response was:", raw_text[:200])
+            return
+
+        if not isinstance(data, dict):
+            print("Data is not a dict.")
+            return
+
+        games = data.get("data")
+        if not isinstance(games, list):
+            print("Unexpected 'data' structure:", games)
+            return
+
+        if len(games) == 0:
+            print("No upcoming Celtics games found.")
+            return
+
+        game = games[0]
+
+        is_home = game["home_team"]["id"] == team_id
+        opponent = game["visitor_team"] if is_home else game["home_team"]
+        opp_name = opponent["full_name"]
+        loc = "home (vs)" if is_home else "away (@)"
+
+        dt = game.get("datetime")
+        if dt and "T" in dt:
+            date_str, time_str = dt.split("T")
+            time_str = time_str[:5] + " UTC"
+        else:
+            date_str = game.get("date", "TBD")
+            time_str = "Time TBD"
+
+        print(f"Next Celtics game is {loc} {opp_name} on {date_str} at {time_str}")
+        draw_future_game(date_str, time_str, opp_name)
+
+    except Exception as e:
+        print("Failed to retrieve next Celtics game:", e)
 
 def get_scoreboard(game_id):
 
@@ -82,10 +141,9 @@ def get_scoreboard(game_id):
     data = response.json()
     response.close()
 
-    scoreboard = response["scoreboard"]
-
-    for game in scoreboard["games"]:
-
+    games = data.get("scoreboard", {}).get("games", [])
+    for game in games:
+        game_id = game["gameId"]
         game_clock = game["gameClock"]
         home_team_struct = game["homeTeam"]
         home_team_name = home_team_struct["teamName"]

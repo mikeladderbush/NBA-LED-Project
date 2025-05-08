@@ -55,17 +55,13 @@ while True:
         try:
             # Retrieve current game data for the Celtics.
             home_score, away_score, opponent, clock = fetch_celtics_game()  # type: ignore
-            print(home_score)
-            print(away_score)
-            print(opponent)
-            print(clock)
             if home_score != -1:
                 draw_logo(celtics, 0, 0, 0)
                 opponent = team_from_string(opponent.lower())
                 draw_logo(opponent, 0, 0, 1)
                 draw_score(away_score, home_score)  # type: ignore. Temporary until conditional for home/away
                 draw_clock(clock)  # type: ignore
-                API_UPDATE_INTERVAL = 1  # Use a 1-second interval for live games.
+                API_UPDATE_INTERVAL = 5  # Use a 1-second interval for live games.
             else:
                 print("Looking for the next game...")
                 get_next_game()  # type: ignore
