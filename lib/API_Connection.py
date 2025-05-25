@@ -25,7 +25,7 @@ requests = adafruit_requests.Session(pool, ssl_context)
 # NBA scoreboard API endpoint URL.
 NBA_SCOREBOARD_URL = "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json"
 
-def fetch_celtics_game():
+def fetch_game(team):
     try:
         response = requests.get(NBA_SCOREBOARD_URL)
         data = response.json()
@@ -38,13 +38,13 @@ def fetch_celtics_game():
             home_team = game["homeTeam"]["teamName"]
             away_team = game["awayTeam"]["teamName"]
 
-            # Check if either team is the Celtics.
-            if home_team == "Celtics":
-                home_score, away_score, clock = get_scoreboard(game_id)
+            # Check if either team is the correct team.
+            if home_team == team:
+                home_score, away_score, clock = get_scoreboard(game_id, team)
                 return home_score, away_score, away_team, clock
 
-            if away_team == "Celtics":
-                home_score, away_score, clock = get_scoreboard(game_id)
+            if away_team == team:
+                home_score, away_score, clock = get_scoreboard(game_id, team)
                 return home_score, away_score, home_team, clock
 
         # Return default values if no Celtics game is found.
@@ -69,8 +69,42 @@ def get_current_date():
     return date_str
 
 
-def get_next_game():
-    team_id = 2  # Boston Celtics
+def get_next_game(team):
+
+    teams = {
+        "Hawks": 1,
+        "Celtics": 2,
+        "Nets": 3,
+        "Hornets": 4,
+        "Bulls": 5,
+        "Cavaliers": 6,
+        "Mavericks": 7,
+        "Nuggets": 8,
+        "Pistons": 9,
+        "Warriors": 10,
+        "Rockets": 11,
+        "Pacers": 12,
+        "Lakers": 13,
+        "Clippers": 14,
+        "Grizzlies": 15,
+        "Heat": 16,
+        "Bucks": 17,
+        "Timberwolves": 18,
+        "Pelicans": 19,
+        "Knicks": 20,
+        "Thunder": 21,
+        "Magic": 22,
+        "76ers": 23,
+        "Suns": 24,
+        "Blazers": 25,
+        "Kings": 26,
+        "Spurs": 27,
+        "Raptors": 28,
+        "Jazz": 29,
+        "Wizards": 30
+    }
+
+    team_id = teams.get(team)
     start_date = get_current_date()
 
 
@@ -109,15 +143,17 @@ def get_next_game():
             return
 
         if len(games) == 0:
-            print("No upcoming Celtics games found.")
+            print("No upcoming games found.")
             return
 
         game = games[0]
 
-        is_home = game["home_team"]["id"] == team_id
-        opponent = game["visitor_team"] if is_home else game["home_team"]
+        home_id = game["home_team"]["id"]
+        away_id = game["visitor_team"]["id"]
+        opponent = game["visitor_team"]
         opp_name = opponent["full_name"]
-        loc = "home (vs)" if is_home else "away (@)"
+        team = game["home_team"]
+        team_name = team["full_name"]
 
         dt = game.get("datetime")
         if dt and "T" in dt:
@@ -127,13 +163,13 @@ def get_next_game():
             date_str = game.get("date", "TBD")
             time_str = "Time TBD"
 
-        print(f"Next Celtics game is {loc} {opp_name} on {date_str} at {time_str}")
-        draw_future_game(date_str, time_str, opp_name)
+        print(f"Next game is {opp_name} on {date_str} at {time_str}")
+        draw_future_game(date_str, time_str, team_name, opp_name)
 
     except Exception as e:
-        print("Failed to retrieve next Celtics game:", e)
+        print("Failed to retrieve next game:", e)
 
-def get_scoreboard(game_id):
+def get_scoreboard(game_id, team_id):
 
     NBA_SCOREBOARD_URL = f"https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json"
 
@@ -150,11 +186,11 @@ def get_scoreboard(game_id):
         away_team_struct = game["awayTeam"]
         away_team_name = away_team_struct["teamName"]
 
-        if home_team_name == "Celtics":
+        if home_team_name == team_id:
             home_score = home_team_struct["score"]
             away_score = away_team_struct["score"]
 
-        if away_team_name == "Celtics":
+        if away_team_name == team_id:
             away_score = home_team_struct["score"]
             home_score = away_team_struct["score"]
 

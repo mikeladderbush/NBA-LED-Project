@@ -46,6 +46,8 @@ except Exception as e:
 # Initialize API call timer to 1 second to avoid spamming the endpoint when no game is live.
 last_api_call = time.monotonic()
 API_UPDATE_INTERVAL = 1
+team = "Pacers"
+team_name = pacers
 
 # Main loop: fetch API data, update scores/clock, and refresh display graphics.
 while True:
@@ -53,10 +55,10 @@ while True:
     if time.monotonic() - last_api_call > API_UPDATE_INTERVAL:
         last_api_call = time.monotonic()
         try:
-            # Retrieve current game data for the Celtics.
-            home_score, away_score, opponent, clock = fetch_celtics_game()  # type: ignore
+            # Retrieve current game data for the team.
+            home_score, away_score, opponent, clock = fetch_game(team)  # type: ignore
             if home_score != -1:
-                draw_logo(celtics, 0, 0, 0)
+                draw_logo(team_name, 0, 0, 0)
                 opponent = team_from_string(opponent.lower())
                 draw_logo(opponent, 0, 0, 1)
                 draw_score(away_score, home_score)  # type: ignore. Temporary until conditional for home/away
@@ -64,7 +66,7 @@ while True:
                 API_UPDATE_INTERVAL = 5  # Use a 1-second interval for live games.
             else:
                 print("Looking for the next game...")
-                get_next_game()  # type: ignore
+                get_next_game(team)  # type: ignore
                 API_UPDATE_INTERVAL = 300  # Use a longer interval when no live game is detected.
         except Exception as e:
             print("Unable to retrieve game data:", e)

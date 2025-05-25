@@ -538,7 +538,9 @@ def draw_date(game_date):
 
 
 
-def draw_future_game(game_date, game_time, game_opponent):
+def draw_future_game(game_date, game_time, team, game_opponent):
+    print(team)
+    print(game_opponent)
     teams = {
         "Atlanta Hawks": hawks,
         "Boston Celtics": celtics,
@@ -572,13 +574,14 @@ def draw_future_game(game_date, game_time, game_opponent):
         "Washington Wizards": wizards
     }
 
+    this_team = teams.get(team)
     opponent_team = teams.get(game_opponent)
 
     if opponent_team is None:
         print("Unknown opponent:", game_opponent)
         return
 
-    draw_logo(celtics, 0, 0, 0)
+    draw_logo(this_team, 0, 0, 0)
     draw_logo(opponent_team, 0, 0, 1)
     draw_clock(game_time)
     draw_date(game_date)
