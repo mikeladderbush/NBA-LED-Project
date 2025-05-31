@@ -30,10 +30,12 @@ def fetch_game(team):
         response = requests.get(NBA_SCOREBOARD_URL)
         data = response.json()
         response.close()
+        print(data)
 
         # Retrieve the list of games from the JSON response.
         games = data.get("scoreboard", {}).get("games", [])
         for game in games:
+            game_time = game["gameStatusText"]
             game_id = game["gameId"]
             home_team = game["homeTeam"]["teamName"]
             away_team = game["awayTeam"]["teamName"]
@@ -41,13 +43,13 @@ def fetch_game(team):
             # Check if either team is the correct team.
             if home_team == team:
                 home_score, away_score, clock = get_scoreboard(game_id, team)
-                return home_score, away_score, away_team, clock
+                return home_score, away_score, away_team, clock, game_time
 
             if away_team == team:
                 home_score, away_score, clock = get_scoreboard(game_id, team)
-                return home_score, away_score, home_team, clock
+                return home_score, away_score, home_team, clock, game_time
 
-        # Return default values if no Celtics game is found.
+        # Return default values if no game is found.
         return -1, -1, "unknown", "00:00"
 
     except Exception as e:
@@ -67,6 +69,61 @@ def get_current_date():
     date_str = datetime_str.split("T")[0]  # Just the "2025-05-08" part
 
     return date_str
+
+def get_current_time():
+    TIMEZONE = "America/New_York"
+    URL = f"http://worldtimeapi.org/api/timezone/{TIMEZONE}"
+
+    response = requests.get(URL)
+    time_data = response.json()
+    response.close()
+
+    time_str_data = time_data.get("datetime","")
+    time_str = time_str_data.split(":")[0] + ":" + time_str_data.split(":")[1]
+    
+    return time_str
+
+import time
+
+def convert_utc_to_est(utc_datetime):
+    # Get offset from worldtimeapi
+    tz_url = "http://worldtimeapi.org/api/timezone/America/New_York"
+    tz_response = requests.get(tz_url)
+    tz_data = tz_response.json()
+    tz_response.close()
+
+    utc_offset = tz_data.get("utc_offset", "-04:00")  # e.g. "-04:00"
+    offset_sign = 1 if utc_offset[0] == "+" else -1
+    offset_hours = int(utc_offset[1:3])
+    offset_minutes = int(utc_offset[4:6])
+
+    try:
+        # Example: "2025-06-01T00:00:00.000Z"
+        date_part, time_part = utc_datetime.replace("Z", "").split("T")
+        time_clean = time_part.split(".")[0]  # Strip off milliseconds
+        year, month, day = map(int, date_part.split("-"))
+        hour, minute, second = map(int, time_clean.split(":"))
+    except Exception as e:
+        print("Datetime parse error:", e)
+        return "TBD", "Time TBD"
+
+    try:
+        utc_struct = time.struct_time((year, month, day, hour, minute, second, 0, 0, 0))
+        utc_epoch = time.mktime(utc_struct)
+        offset_seconds = offset_sign * (offset_hours * 3600 + offset_minutes * 60)
+        local_epoch = utc_epoch + offset_seconds
+        local_time = time.localtime(local_epoch)
+    except Exception as e:
+        print("Epoch conversion error:", e)
+        return "TBD", "Time TBD"
+
+    hour_12 = local_time.tm_hour % 12 or 12
+    am_pm = "AM" if local_time.tm_hour < 12 else "PM"
+    time_str = f"{hour_12}:{local_time.tm_min:02d} {am_pm}"
+    date_str = f"{local_time.tm_year:04}-{local_time.tm_mon:02}-{local_time.tm_mday:02}"
+
+    return date_str, time_str
+
 
 
 def get_next_game(team):
@@ -106,6 +163,7 @@ def get_next_game(team):
 
     team_id = teams.get(team)
     start_date = get_current_date()
+    print(start_date)
 
 
     url = (
@@ -121,6 +179,7 @@ def get_next_game(team):
         response = requests.get(url, headers=headers)
         raw_text = response.text
         response.close()
+        print(raw_text)
 
         if not raw_text:
             print("Empty response from server.")
@@ -155,10 +214,9 @@ def get_next_game(team):
         team = game["home_team"]
         team_name = team["full_name"]
 
-        dt = game.get("datetime")
-        if dt and "T" in dt:
-            date_str, time_str = dt.split("T")
-            time_str = time_str[:5] + " UTC"
+        utc_dt = game.get("datetime")
+        if utc_dt and "T" in utc_dt:
+            date_str, time_str = convert_utc_to_est(utc_dt)
         else:
             date_str = game.get("date", "TBD")
             time_str = "Time TBD"

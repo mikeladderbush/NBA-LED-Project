@@ -54,27 +54,32 @@ while True:
     # Check if the API update interval has elapsed.
     if time.monotonic() - last_api_call > API_UPDATE_INTERVAL:
         last_api_call = time.monotonic()
+        current_time = get_current_time()
+
         try:
-            # Retrieve current game data for the team.
-            home_score, away_score, opponent, clock = fetch_game(team)  # type: ignore
-            if home_score != -1:
+            # Try to fetch live game data
+            home_score, away_score, opponent, clock, game_time = fetch_game(team)  # type: ignore
+
+            if game_time and game_time <= current_time:
                 draw_logo(team_name, 0, 0, 0)
                 opponent = team_from_string(opponent.lower())
                 draw_logo(opponent, 0, 0, 1)
-                draw_score(away_score, home_score)  # type: ignore. Temporary until conditional for home/away
+                draw_score(away_score, home_score)  # type: ignore
                 draw_clock(clock)  # type: ignore
-                API_UPDATE_INTERVAL = 5  # Use a 1-second interval for live games.
+                API_UPDATE_INTERVAL = 1  # Live game, update frequently
             else:
-                print("Looking for the next game...")
-                get_next_game(team)  # type: ignore
-                API_UPDATE_INTERVAL = 300  # Use a longer interval when no live game is detected.
+                raise ValueError("No live game found or game hasn't started yet.")
+
         except Exception as e:
-            print("Unable to retrieve game data:", e)
+            print("Falling back to next scheduled game:", e)
+            get_next_game(team)  # type: ignore
+            API_UPDATE_INTERVAL = 300  # Idle mode, update less frequently
+
 
     # Update background and overlay graphics.
     draw_columns(background_bitmap, 0, 32, 64, 4)  # type: ignore
     draw_columns(background_bitmap, 32, 32, 64, 3)  # type: ignore
-    draw_row_singular(decal_bitmap, 64, 42, 2)  # type: ignore
+    draw_row_singular(decal_bitmap, 64, 46, 2)  # type: ignore
 
     # Refresh the display.
     display.refresh()  # type: ignore

@@ -408,11 +408,11 @@ def draw_score(home_score, away_score):
 
     if home_score_hundreds > 0:
         draw_number(home_score_hundreds, 4, 48, 2)
-        draw_number(home_score_tens, 12, 48, 2)
-        draw_number(home_score_ones, 20, 48, 2)
+        draw_number(home_score_tens, 6, 48, 2)
+        draw_number(home_score_ones, 14, 48, 2)
     else:
-        draw_number(home_score_tens, 12, 48, 2)
-        draw_number(home_score_ones, 20, 48, 2)
+        draw_number(home_score_tens, 6, 48, 2)
+        draw_number(home_score_ones, 14, 48, 2)
 
     # Away team
     away_score_hundreds = (away_score // 100) % 10
@@ -420,12 +420,12 @@ def draw_score(home_score, away_score):
     away_score_ones = away_score % 10
 
     if away_score_hundreds > 0:
-        draw_number(away_score_hundreds, 36, 48, 2)
-        draw_number(away_score_tens, 44, 48, 2)
-        draw_number(away_score_ones, 52, 48, 2)
+        draw_number(away_score_hundreds, 30, 48, 2)
+        draw_number(away_score_tens, 38, 48, 2)
+        draw_number(away_score_ones, 46, 48, 2)
     else:
-        draw_number(away_score_tens, 44, 48, 2)
-        draw_number(away_score_ones, 52, 48, 2)
+        draw_number(away_score_tens, 38, 48, 2)
+        draw_number(away_score_ones, 46, 48, 2)
 
 
 def format_clock(clock_str):
@@ -471,16 +471,16 @@ def draw_clock(clock_str):
             time, am_pm = clock_str.split()
             hours, minutes = map(int, time.split(":"))
 
-            draw_number(hours // 10, 15, 31, 2) if hours >= 10 else None
-            draw_number(hours % 10, 21, 31, 2)
-            draw_colon(29, 31, 2)
-            draw_number(minutes // 10, 33, 31, 2)
-            draw_number(minutes % 10, 40, 31, 2)
+            draw_number(hours // 10, 9, 34, 2) if hours >= 10 else None
+            draw_number(hours % 10, 13, 34, 2)
+            draw_colon(21, 34, 2)
+            draw_number(minutes // 10, 24, 34, 2)
+            draw_number(minutes % 10, 32, 34, 2)
 
             if am_pm == "AM":
-                draw_a(48, 36, 1)
+                draw_a(40, 39, 1)
             else:
-                draw_p(48, 36, 1)
+                draw_p(40, 39, 1)
         except ValueError as e:
             print("AM/PM time format error:", e)
 
@@ -488,11 +488,11 @@ def draw_clock(clock_str):
     else:
         try:
             minutes, seconds = map(int, clock_str.split(":"))
-            draw_number(minutes // 10, 15, 31, 2) if minutes >= 10 else None
-            draw_number(minutes % 10, 21, 31, 2)
-            draw_colon(29, 31, 2)
-            draw_number(seconds // 10, 33, 31, 2)
-            draw_number(seconds % 10, 40, 31, 2)
+            draw_number(minutes // 10, 10, 35, 2) if minutes >= 10 else None
+            draw_number(minutes % 10, 18, 35, 2)
+            draw_colon(25, 35, 2)
+            draw_number(seconds // 10, 28, 35, 2)
+            draw_number(seconds % 10, 36, 35, 2)
         except ValueError as e:
             print("MM:SS time format error:", e)
             # Draw fallback clock
@@ -535,8 +535,6 @@ def draw_date(game_date):
 
     except Exception as e:
         print("draw_date format error:", e)
-
-
 
 def draw_future_game(game_date, game_time, team, game_opponent):
     print(team)
