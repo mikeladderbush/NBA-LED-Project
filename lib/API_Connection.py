@@ -11,10 +11,13 @@ Author(s): Michael Ladderbush
 
 import wifi
 import socketpool
+
 import ssl
 import time
+
 import json
 import adafruit_requests
+import adafruit_ntp
 from draw_tools import draw_future_game
 
 # Initialize HTTP request support with SSL.
@@ -22,111 +25,103 @@ pool = socketpool.SocketPool(wifi.radio)
 ssl_context = ssl.create_default_context()
 requests = adafruit_requests.Session(pool, ssl_context)
 
+BUFFER_SECS = 180
+
 # NBA scoreboard API endpoint URL.
 NBA_SCOREBOARD_URL = "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json"
 
+TEST_SCOREBOARD_URL_INIT = "http://192.168.1.165:5000/fake_clock_init"
+TEST_SCOREBOARD_URL = "http://192.168.1.165:5000/fake_clock"
+
+# Uses Adafruits NTP to get the current hours and minutes and returns them in the proper string format.
+def get_current_time():
+    # struct_time(tm_year=2025, tm_mon=12, tm_mday=19, tm_hour=23, tm_min=1, tm_sec=11, tm_wday=4, tm_yday=353, tm_isdst=-1)
+    ntp = adafruit_ntp.NTP(pool, tz_offset=-5, socket_timeout=20)
+    hours = ntp.datetime.tm_hour
+    mins = ntp.datetime.tm_min
+
+    return f"{hours}:{mins}"
+
+
+# Uses Adafruits NTP to ge tthe current date and returns it in string format.
+def get_current_date():
+    # struct_time(tm_year=2025, tm_mon=12, tm_mday=19, tm_hour=23, tm_min=1, tm_sec=11, tm_wday=4, tm_yday=353, tm_isdst=-1)
+    ntp = adafruit_ntp.NTP(pool, tz_offset=-5, socket_timeout=20)
+    year = int(ntp.datetime.tm_year)
+    mon = int(ntp.datetime.tm_mon)
+    day = int(ntp.datetime.tm_mday)
+
+    return f"{year:04d}-{mon:02d}-{day:02d}"
+
+
+# Takes in the UTC time string and converts it into an Eastern Standard Time string.
+def convert_utc_est(time_str):
+
+    parts = time_str.split(":")
+    hours = parts[0]
+    minutes = parts[1]
+    hours_int = int(hours)
+    hours_int = (hours_int - 5) % 12
+    hours = str(hours_int)
+
+    est_time_str = hours + ":" + minutes
+
+    return est_time_str
+
+
+
+# This method uses the team object provided by the main method to parse and compare the scoreboard provided by the NBA API. 
+# The JSON provided by the NBA API is checked and the necessary team attributes are returned. 
 def fetch_game(team):
     try:
+        # ONE request only
         response = requests.get(NBA_SCOREBOARD_URL)
         data = response.json()
         response.close()
-        print(data)
 
-        # Retrieve the list of games from the JSON response.
+        print(team)
+
         games = data.get("scoreboard", {}).get("games", [])
         for game in games:
-            game_time = game["gameStatusText"]
-            game_id = game["gameId"]
-            home_team = game["homeTeam"]["teamName"]
-            away_team = game["awayTeam"]["teamName"]
+            game_time = game.get("gameStatusText", "")
+            game_status = game.get("gameStatus", 0)
+            game_clock = game.get("gameClock", "")
 
-            # Check if either team is the correct team.
+            home = game.get("homeTeam", {}) or {}
+            away = game.get("awayTeam", {}) or {}
+
+            home_team = home.get("teamName", "") or ""
+            away_team = away.get("teamName", "") or ""
+
+            # scores as ints
+            home_score_raw = home.get("score", 0) or 0
+            away_score_raw = away.get("score", 0) or 0
+            home_score_raw = int(home_score_raw)
+            away_score_raw = int(away_score_raw)
+
+            period = int(game.get("period", 0) or 0)
+
+            # If requested team is home
+            print(home_team)
             if home_team == team:
-                home_score, away_score, clock = get_scoreboard(game_id, team)
-                return home_score, away_score, away_team, clock, game_time
+                return home_score_raw, away_score_raw, away_team, game_clock, game_time, game_status, period
 
+            # If requested team is away (swap so "home_score" is always your team)
             if away_team == team:
-                home_score, away_score, clock = get_scoreboard(game_id, team)
-                return home_score, away_score, home_team, clock, game_time
+                return away_score_raw, home_score_raw, home_team, game_clock, game_time, game_status, period
 
-        # Return default values if no game is found.
-        return -1, -1, "unknown", "00:00"
+        return -1, -1, "unknown", "", "Scheduled", 1, 1
 
     except Exception as e:
         print("Failed to fetch NBA games:", e)
-        return 0, 0, "unknown", "12:00"
-
-def get_current_date():
-    TIMEZONE = "America/New_York"
-    URL = f"http://worldtimeapi.org/api/timezone/{TIMEZONE}"
-
-    response = requests.get(URL)
-    time_data = response.json()
-    response.close()
-
-    # Extract date in format YYYY-MM-DD
-    datetime_str = time_data.get("datetime", "")  # e.g. "2025-05-08T14:15:22.123456-04:00"
-    date_str = datetime_str.split("T")[0]  # Just the "2025-05-08" part
-
-    return date_str
-
-def get_current_time():
-    TIMEZONE = "America/New_York"
-    URL = f"http://worldtimeapi.org/api/timezone/{TIMEZONE}"
-
-    response = requests.get(URL)
-    time_data = response.json()
-    response.close()
-
-    time_str_data = time_data.get("datetime","")
-    time_str = time_str_data.split(":")[0] + ":" + time_str_data.split(":")[1]
-    
-    return time_str
-
-import time
-
-def convert_utc_to_est(utc_datetime):
-    # Get offset from worldtimeapi
-    tz_url = "http://worldtimeapi.org/api/timezone/America/New_York"
-    tz_response = requests.get(tz_url)
-    tz_data = tz_response.json()
-    tz_response.close()
-
-    utc_offset = tz_data.get("utc_offset", "-04:00")  # e.g. "-04:00"
-    offset_sign = 1 if utc_offset[0] == "+" else -1
-    offset_hours = int(utc_offset[1:3])
-    offset_minutes = int(utc_offset[4:6])
-
-    try:
-        # Example: "2025-06-01T00:00:00.000Z"
-        date_part, time_part = utc_datetime.replace("Z", "").split("T")
-        time_clean = time_part.split(".")[0]  # Strip off milliseconds
-        year, month, day = map(int, date_part.split("-"))
-        hour, minute, second = map(int, time_clean.split(":"))
-    except Exception as e:
-        print("Datetime parse error:", e)
-        return "TBD", "Time TBD"
-
-    try:
-        utc_struct = time.struct_time((year, month, day, hour, minute, second, 0, 0, 0))
-        utc_epoch = time.mktime(utc_struct)
-        offset_seconds = offset_sign * (offset_hours * 3600 + offset_minutes * 60)
-        local_epoch = utc_epoch + offset_seconds
-        local_time = time.localtime(local_epoch)
-    except Exception as e:
-        print("Epoch conversion error:", e)
-        return "TBD", "Time TBD"
-
-    hour_12 = local_time.tm_hour % 12 or 12
-    am_pm = "AM" if local_time.tm_hour < 12 else "PM"
-    time_str = f"{hour_12}:{local_time.tm_min:02d} {am_pm}"
-    date_str = f"{local_time.tm_year:04}-{local_time.tm_mon:02}-{local_time.tm_mday:02}"
-
-    return date_str, time_str
+        return -1, -1, "unknown", "", "Scheduled", 1, 1
 
 
 
+# Uses the team object to find the next game on the schedule using the NBA API.
 def get_next_game(team):
+
+    print("Getting next game on schedule.")
 
     teams = {
         "Hawks": 1,
@@ -163,8 +158,6 @@ def get_next_game(team):
 
     team_id = teams.get(team)
     start_date = get_current_date()
-    print(start_date)
-
 
     url = (
         "https://api.balldontlie.io/v1/games"
@@ -179,7 +172,7 @@ def get_next_game(team):
         response = requests.get(url, headers=headers)
         raw_text = response.text
         response.close()
-        print(raw_text)
+
 
         if not raw_text:
             print("Empty response from server.")
@@ -213,48 +206,70 @@ def get_next_game(team):
         opp_name = opponent["full_name"]
         team = game["home_team"]
         team_name = team["full_name"]
+        date_str = game["date"]
+        time_str = game["datetime"]
+        
+        #"2025-01-05T23:00:00.000Z"
+        time_str = time_str[11:16]
+        time_str = convert_utc_est(time_str)
 
-        utc_dt = game.get("datetime")
-        if utc_dt and "T" in utc_dt:
-            date_str, time_str = convert_utc_to_est(utc_dt)
-        else:
-            date_str = game.get("date", "TBD")
-            time_str = "Time TBD"
-
-        print(f"Next game is {opp_name} on {date_str} at {time_str}")
-        draw_future_game(date_str, time_str, team_name, opp_name)
+        return date_str, time_str, team_name, opp_name
 
     except Exception as e:
         print("Failed to retrieve next game:", e)
 
-def get_scoreboard(game_id, team_id):
-
-    NBA_SCOREBOARD_URL = f"https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json"
-
-    response = requests.get(NBA_SCOREBOARD_URL)
-    data = response.json()
-    response.close()
-
-    games = data.get("scoreboard", {}).get("games", [])
-    for game in games:
-        game_id = game["gameId"]
-        game_clock = game["gameClock"]
-        home_team_struct = game["homeTeam"]
-        home_team_name = home_team_struct["teamName"]
-        away_team_struct = game["awayTeam"]
-        away_team_name = away_team_struct["teamName"]
-
-        if home_team_name == team_id:
-            home_score = home_team_struct["score"]
-            away_score = away_team_struct["score"]
-
-        if away_team_name == team_id:
-            away_score = home_team_struct["score"]
-            home_score = away_team_struct["score"]
-
-        if home_score is not None and away_score is not None and game_clock:
-            return int(home_score), int(away_score), game_clock
-
-    return 0, 0, "0:00"
 
 
+# Converts a whole integer of seconds into a clock format minutes and seconds string.
+def secs_to_mmss(total_seconds):
+    if total_seconds < 0:
+        total_seconds = 0
+    minutes = total_seconds // 60
+    seconds = total_seconds % 60
+    return f"{minutes:02d}:{seconds:02d}"
+
+
+
+# Clock simulator that takes in a clock string and adjusts it to accept delays.
+def clock_str_to_secs(clock_str):
+    if not clock_str:
+        return None
+    
+    if clock_str.startswith("PT"):
+        s = clock_str[2:]
+        minutes = 0
+        seconds = 0
+
+        if "M" in s:
+            m_part, rest = s.split("M", 1)
+            if m_part:
+                try:
+                    minutes = int(m_part)
+                except ValueError:
+                    minutes = 0
+
+        else:
+            rest = s
+
+        if "S" in rest:
+            s_part = rest.split("S", 1)[0]
+            if s_part:
+                try:
+                    seconds = int(float(s_part))
+                except ValueError:
+                    seconds = 0
+        
+        return minutes * 60 + seconds
+    
+    if ":" in clock_str:
+        parts = clock_str.split(":")
+        if len(parts) == 2:
+            try:
+                minutes = int(parts[0] or 0)
+                sec_part = parts[1].split(".")[0]
+                seconds = int(sec_part or 0)
+                return minutes * 60 + seconds
+            except ValueError:
+                return None
+            
+    return None

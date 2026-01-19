@@ -37,6 +37,15 @@ decal_palette[2] = 0xFFFFFF  # white
 tilegrid_decals = displayio.TileGrid(decal_bitmap, pixel_shader=decal_palette)
 group.append(tilegrid_decals)
 
+letter_bitmap = displayio.Bitmap(display.width, display.height, 16)
+letter_palette = displayio.Palette(3)
+letter_palette.make_transparent(0)
+letter_palette[1] = 0x000000  # black
+letter_palette[2] = 0xFFFFFF  # white
+
+tilegrid_letter = displayio.TileGrid(letter_bitmap, pixel_shader=letter_palette)
+group.append(tilegrid_letter)
+
 
 
 
