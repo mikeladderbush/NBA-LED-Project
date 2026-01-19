@@ -25,4 +25,6 @@ The NBA Scoreboard Display is a CircuitPython-based project designed to control 
 - **3-D Printed Enclosure:** Current prototype enclosure is simple and proof of concept.
 - **Mobile Support For Team Selection:** Stripped down android application for controlling the display is in early production.
 
-
+![1000002842](https://github.com/user-attachments/assets/f9f3ab91-f583-4162-9a9e-37d6b8accee4)
+![1000002841](https://github.com/user-attachments/assets/853aa13c-1582-4256-b731-b306a02aa125)
+![1000002843](https://github.com/user-attachments/assets/befa1d51-edb3-4d4c-90d2-18acb37da424)
