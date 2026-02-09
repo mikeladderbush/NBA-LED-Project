@@ -28,7 +28,7 @@ DBG_WARN_FETCH_SLOW = 2.0    # seconds
 
 # TimeFrame object is used to track a single point in time and the associated game attributes.
 class TimeFrame:
-    def __init__(self, team_name, home_score, away_score, opponent, clock, game_time, game_status, period):
+    def __init__(self, team_name: nba_team, home_score, away_score, opponent, clock, game_time, game_status, period):
         self.team_name = team_name
         self.home_score = home_score
         self.away_score = away_score
@@ -42,7 +42,8 @@ class TimeFrame:
 
 # Draws the current TimeFrame using the draw_tools methods.
 def draw_frame(frame: TimeFrame):
-    draw_logo(frame.team_name, 0, 0, 0)
+    team: nba_team = frame.team_name
+    draw_logo(team, 0, 0, 0)
 
     opp = team_from_string(frame.opponent.lower())
     if opp is not None:
@@ -98,43 +99,42 @@ TEAM_ABBRS = [
 ]
 
 ABBR_TO_TEAMKEY = {
-    "ATL": "Hawks",
-    "BKN": "Nets",
-    "BOS": "Celtics",
-    "CHA": "Hornets",
-    "CHI": "Bulls",
-    "CLE": "Cavaliers",
-    "DAL": "Mavericks",
-    "DEN": "Nuggets",
-    "DET": "Pistons",
-    "GSW": "Warriors",
-    "HOU": "Rockets",
-    "IND": "Pacers",
-    "LAC": "Clippers",
-    "LAL": "Lakers",
-    "MEM": "Grizzlies",
-    "MIA": "Heat",
-    "MIL": "Bucks",
-    "MIN": "Timberwolves",
-    "NOP": "Pelicans",
-    "NYK": "Knicks",
-    "OKC": "Thunder",
-    "ORL": "Magic",
-    "PHI": "Sixers",
-    "PHX": "Suns",
-    "POR": "Blazers",
-    "SAC": "Kings",
-    "SAS": "Spurs",
-    "TOR": "Raptors",
-    "UTA": "Jazz",
-    "WAS": "Wizards",
+    "ATL": hawks,
+    "BKN": nets,
+    "BOS": celtics,
+    "CHA": hornets,
+    "CHI": bulls,
+    "CLE": cavs,
+    "DAL": mavericks,
+    "DEN": nuggets,
+    "DET": pistons,
+    "GSW": warriors,
+    "HOU": rockets,
+    "IND": pacers,
+    "LAC": clippers,
+    "LAL": lakers,
+    "MEM": grizzlies,
+    "MIA": heat,
+    "MIL": bucks,
+    "MIN": timberwolves,
+    "NOP": pelicans,
+    "NYK": knicks,
+    "OKC": thunder,
+    "ORL": magic,
+    "PHI": sixers,
+    "PHX": suns,
+    "POR": trail_blazers,
+    "SAC": kings,
+    "SAS": spurs,
+    "TOR": raptors,
+    "UTA": jazz,
+    "WAS": wizards,
 }
 
 
 
 # Main loop for displaying team schedules and active games.
-team = ""
-team_obj = None
+team_name = ""
 
 menu_active = True
 menu_idx = 0
@@ -155,9 +155,6 @@ while menu_active:
 
             if team_key:
                 team = team_key
-                team_obj = team_from_string(team)
-
-            print("team_obj is", "OK" if team_obj else "None")
 
             # IMPORTANT: break even if team_obj None for debugging
             menu_active = False
@@ -180,24 +177,19 @@ next_tick = time.monotonic() + 1.0
 
 # Initial fetch
 t0 = time.monotonic()
-home_score, away_score, opponent_str, clock_str, game_time, game_status, period = fetch_game(team)
+home_score, away_score, opponent_str, clock_str, game_time, game_status, period = fetch_game(team.team_name)
 t1 = time.monotonic()
-
-date_str, time_str, next_team_full, next_opp_full = get_next_game(team)
-
-latest_frame = TimeFrame(team_obj, home_score, away_score, opponent_str, clock_str, game_time, game_status, period)
+print("Fetched game, values gathered: ", home_score, away_score, opponent_str, clock_str, game_time, game_status, period)
+latest_frame = TimeFrame(team, home_score, away_score, opponent_str, clock_str, game_time, game_status, period)
 target_secs = clock_str_to_secs(clock_str)
 
 if target_secs is not None:
     display_secs = target_secs
 
-in_game = (game_status != 1)
+in_game = (game_status > 1)
 if not in_game:
     print("Falling back to next scheduled game:")
-
-if DEBUG:
-    print("INIT fetch_game() seconds:", round(t1 - t0, 3))
-    print("INIT clock_str:", clock_str, "target_secs:", target_secs, "display_secs:", display_secs, "status:", game_status)
+    date_str, time_str, next_team_full, next_opp_full = get_next_game(team.team_name)
 
 while True:
     now = time.monotonic()
@@ -206,11 +198,11 @@ while True:
         # Poll API occasionally
         if now - last_api_call > LIVE_POLL_SECS:
             fetch_start = time.monotonic()
-            home_score, away_score, opponent_str, clock_str, game_time, game_status, period = fetch_game(team)
+            home_score, away_score, opponent_str, clock_str, game_time, game_status, period = fetch_game(latest_frame.team_name)
             fetch_end = time.monotonic()
             fetch_dt = fetch_end - fetch_start
 
-            latest_frame = TimeFrame(team_obj, home_score, away_score, opponent_str, clock_str, game_time, game_status, period)
+            latest_frame = TimeFrame(team, home_score, away_score, opponent_str, clock_str, game_time, game_status, period)
             last_api_call = now
 
             api_secs = clock_str_to_secs(clock_str)
@@ -220,22 +212,9 @@ while True:
                 if display_secs is None:
                     display_secs = target_secs + DELAY_SECS
 
-                if DEBUG and DBG_EVERY_API:
-                    print(
-                        "API poll dt=", round(fetch_dt, 3),
-                        "clock_str=", clock_str,
-                        "target=", target_secs,
-                        "old_target=", old_target,
-                        "display=", display_secs,
-                        "hold_at=", (target_secs),
-                    )
-
-            if DEBUG and fetch_dt > DBG_WARN_FETCH_SLOW:
-                print("WARN: fetch_game() slow/hung-ish:", round(fetch_dt, 3), "seconds")
-
-            if game_status == 1:
+            if game_status != 1:
                 in_game = False
-                date_str, time_str, next_team_full, next_opp_full = get_next_game(team)
+                date_str, time_str, next_team_full, next_opp_full = get_next_game(team_name)
 
         # Local 1Hz tick
         if display_secs is not None and target_secs is not None:
@@ -250,12 +229,6 @@ while True:
                 if next_tick < now - 0.25:
                     next_tick = now + 0.75
 
-        if DEBUG and (now - last_dbg) >= DBG_EVERY_SEC and display_secs is not None and target_secs is not None:
-            hold_at = target_secs
-            state = "COUNT" if display_secs > hold_at else "HOLD"
-            print("TICK", state, "display=", display_secs, "target=", target_secs, "hold_at=", hold_at)
-            last_dbg = now
-
         if latest_frame is not None and display_secs is not None:
             latest_frame.clock = secs_to_mmss(display_secs)
             draw_frame(latest_frame)
@@ -263,16 +236,13 @@ while True:
     else:
         if now - last_api_call > SCHED_POLL_SECS:
             fetch_start = time.monotonic()
-            home_score, away_score, opponent_str, clock_str, game_time, game_status, period = fetch_game(team)
+            home_score, away_score, opponent_str, clock_str, game_time, game_status, period = fetch_game(team.team_name)
             fetch_end = time.monotonic()
             fetch_dt = fetch_end - fetch_start
             last_api_call = now
 
-            if DEBUG:
-                print("SCHED poll dt=", round(fetch_dt, 3), "status=", game_status, "clock_str=", clock_str)
-
             if game_status != 1:
-                latest_frame = TimeFrame(team_obj, home_score, away_score, opponent_str, clock_str, game_time, game_status, period)
+                latest_frame = TimeFrame(team, home_score, away_score, opponent_str, clock_str, game_time, game_status, period)
                 target_secs = clock_str_to_secs(clock_str)
                 if target_secs is not None:
                     display_secs = target_secs + DELAY_SECS

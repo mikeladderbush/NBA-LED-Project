@@ -15,78 +15,79 @@ from buffer_frame import *
 import re
 
 class nba_team:
-    def __init__(self, bitmap, palette, pattern):
+    def __init__(self, team_name, bitmap, palette, pattern):
+        self.team_name = team_name
         self.bitmap = bitmap
         self.palette = palette
         self.pattern = pattern
 
 # Eastern Conference teams
-hawks = nba_team(hawks_logo_bitmap, hawks_logo_palette, hawks_pattern)
-celtics = nba_team(celtics_logo_bitmap, celtics_logo_palette, celtics_pattern)
-nets = nba_team(nets_logo_bitmap, nets_logo_palette, nets_pattern)
-hornets = nba_team(hornets_logo_bitmap, hornets_logo_palette, hornets_pattern)
-bulls = nba_team(bulls_logo_bitmap, bulls_logo_palette, bulls_pattern)
-cavs = nba_team(cavs_logo_bitmap, cavs_logo_palette, cavs_pattern)
-pistons = nba_team(pistons_logo_bitmap, pistons_logo_palette, pistons_pattern)
-pacers = nba_team(pacers_logo_bitmap, pacers_logo_palette, pacers_pattern)
-heat = nba_team(heat_logo_bitmap, heat_logo_palette, heat_pattern)
-bucks = nba_team(bucks_logo_bitmap, bucks_logo_palette, bucks_pattern)
-knicks = nba_team(knicks_logo_bitmap, knicks_logo_palette, knicks_pattern)
-magic = nba_team(magic_logo_bitmap, magic_logo_palette, magic_pattern)
-sixers = nba_team(sixers_logo_bitmap, sixers_logo_palette, sixers_pattern)
-raptors = nba_team(raptors_logo_bitmap, raptors_logo_palette, raptors_pattern)
-wizards = nba_team(wizards_logo_bitmap, wizards_logo_palette, wizards_pattern)
+hawks = nba_team("Hawks", hawks_logo_bitmap, hawks_logo_palette, hawks_pattern)
+celtics = nba_team("Celtics", celtics_logo_bitmap, celtics_logo_palette, celtics_pattern)
+nets = nba_team("Nets", nets_logo_bitmap, nets_logo_palette, nets_pattern)
+hornets = nba_team("Hornets", hornets_logo_bitmap, hornets_logo_palette, hornets_pattern)
+bulls = nba_team("Bulls", bulls_logo_bitmap, bulls_logo_palette, bulls_pattern)
+cavs = nba_team("Cavs", cavs_logo_bitmap, cavs_logo_palette, cavs_pattern)
+pistons = nba_team("Pistons", pistons_logo_bitmap, pistons_logo_palette, pistons_pattern)
+pacers = nba_team("Pacers", pacers_logo_bitmap, pacers_logo_palette, pacers_pattern)
+heat = nba_team("Heat", heat_logo_bitmap, heat_logo_palette, heat_pattern)
+bucks = nba_team("Bucks", bucks_logo_bitmap, bucks_logo_palette, bucks_pattern)
+knicks = nba_team("Knicks", knicks_logo_bitmap, knicks_logo_palette, knicks_pattern)
+magic = nba_team("Magic", magic_logo_bitmap, magic_logo_palette, magic_pattern)
+sixers = nba_team("Sixers", sixers_logo_bitmap, sixers_logo_palette, sixers_pattern)
+raptors = nba_team("Raptors", raptors_logo_bitmap, raptors_logo_palette, raptors_pattern)
+wizards = nba_team("Wizards", wizards_logo_bitmap, wizards_logo_palette, wizards_pattern)
 
 # Western Conference teams
-mavericks = nba_team(mavericks_logo_bitmap, mavericks_logo_palette, mavericks_pattern)
-nuggets = nba_team(nuggets_logo_bitmap, nuggets_logo_palette, nuggets_pattern)
-warriors = nba_team(warriors_logo_bitmap, warriors_logo_palette, warriors_pattern)
-rockets = nba_team(rockets_logo_bitmap, rockets_logo_palette, rockets_pattern)
-clippers = nba_team(clippers_logo_bitmap, clippers_logo_palette, clippers_pattern)
-lakers = nba_team(lakers_logo_bitmap, lakers_logo_palette, lakers_pattern)
-grizzlies = nba_team(grizzlies_logo_bitmap, grizzlies_logo_palette, grizzlies_pattern)
-timberwolves = nba_team(timberwolves_logo_bitmap, timberwolves_logo_palette, timberwolves_pattern)
-pelicans = nba_team(pelicans_logo_bitmap, pelicans_logo_palette, pelicans_pattern)
-thunder = nba_team(thunder_logo_bitmap, thunder_logo_palette, thunder_pattern)
-suns = nba_team(suns_logo_bitmap, suns_logo_palette, suns_pattern)
-trail_blazers = nba_team(trail_blazers_logo_bitmap, trail_blazers_logo_palette, trail_blazers_pattern)
-kings = nba_team(kings_logo_bitmap, kings_logo_palette, kings_pattern)
-spurs = nba_team(spurs_logo_bitmap, spurs_logo_palette, spurs_pattern)
-jazz = nba_team(jazz_logo_bitmap, jazz_logo_palette, jazz_pattern)
+mavericks = nba_team("Mavericks", mavericks_logo_bitmap, mavericks_logo_palette, mavericks_pattern)
+nuggets = nba_team("Nuggets", nuggets_logo_bitmap, nuggets_logo_palette, nuggets_pattern)
+warriors = nba_team("Warriors", warriors_logo_bitmap, warriors_logo_palette, warriors_pattern)
+rockets = nba_team("Rockets", rockets_logo_bitmap, rockets_logo_palette, rockets_pattern)
+clippers = nba_team("Clippers", clippers_logo_bitmap, clippers_logo_palette, clippers_pattern)
+lakers = nba_team("Lakers", lakers_logo_bitmap, lakers_logo_palette, lakers_pattern)
+grizzlies = nba_team("Grizzlies", grizzlies_logo_bitmap, grizzlies_logo_palette, grizzlies_pattern)
+timberwolves = nba_team("Timberwolves", timberwolves_logo_bitmap, timberwolves_logo_palette, timberwolves_pattern)
+pelicans = nba_team("Pelicans", pelicans_logo_bitmap, pelicans_logo_palette, pelicans_pattern)
+thunder = nba_team("Thunder", thunder_logo_bitmap, thunder_logo_palette, thunder_pattern)
+suns = nba_team("Suns", suns_logo_bitmap, suns_logo_palette, suns_pattern)
+trail_blazers = nba_team("Trail_blazers", trail_blazers_logo_bitmap, trail_blazers_logo_palette, trail_blazers_pattern)
+kings = nba_team("Kings", kings_logo_bitmap, kings_logo_palette, kings_pattern)
+spurs = nba_team("Spurs", spurs_logo_bitmap, spurs_logo_palette, spurs_pattern)
+jazz = nba_team("Jazz", jazz_logo_bitmap, jazz_logo_palette, jazz_pattern)
 
 # Helper to assign team with just a name.
 def team_from_string(team_name) -> nba_team:
     teams = {
-        "hawks": hawks,
-        "celtics": celtics,
-        "nets": nets,
-        "hornets": hornets,
-        "bulls": bulls,
-        "cavaliers": cavs,
-        "mavericks": mavericks,
-        "nuggets": nuggets,
-        "pistons": pistons,
-        "warriors": warriors,
-        "rockets": rockets,
-        "pacers": pacers,
-        "lakers": lakers,
-        "clippers": clippers,
-        "grizzlies": grizzlies,
-        "heat": heat,
-        "bucks": bucks,
-        "timberwolves": timberwolves,
-        "pelicans": pelicans,
-        "knicks": knicks,
-        "thunder": thunder,
-        "magic": magic,
-        "sixers": sixers,
-        "suns": suns,
-        "blazers": trail_blazers,
-        "kings": kings,
-        "spurs": spurs,
-        "raptors": raptors,
-        "jazz": jazz,
-        "wizards": wizards
+        "Hawks": hawks,
+        "Celtics": celtics,
+        "Nets": nets,
+        "Hornets": hornets,
+        "Bulls": bulls,
+        "Cavaliers": cavs,
+        "Mavericks": mavericks,
+        "Nuggets": nuggets,
+        "Pistons": pistons,
+        "Warriors": warriors,
+        "Rockets": rockets,
+        "Pacers": pacers,
+        "Lakers": lakers,
+        "Clippers": clippers,
+        "Grizzlies": grizzlies,
+        "Heat": heat,
+        "Bucks": bucks,
+        "Timberwolves": timberwolves,
+        "Pelicans": pelicans,
+        "Knicks": knicks,
+        "Thunder": thunder,
+        "Magic": magic,
+        "Sixers": sixers,
+        "Suns": suns,
+        "Blazers": trail_blazers,
+        "Kings": kings,
+        "Spurs": spurs,
+        "Raptors": raptors,
+        "Jazz": jazz,
+        "Wizards": wizards
     }
 
     opponent_team = teams.get(team_name)

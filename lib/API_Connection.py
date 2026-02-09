@@ -79,38 +79,35 @@ def fetch_game(team):
         data = response.json()
         response.close()
 
-        print(team)
-
         games = data.get("scoreboard", {}).get("games", [])
         for game in games:
-            game_time = game.get("gameStatusText", "")
-            game_status = game.get("gameStatus", 0)
-            game_clock = game.get("gameClock", "")
 
-            home = game.get("homeTeam", {}) or {}
-            away = game.get("awayTeam", {}) or {}
+            home = game.get("homeTeam", {})
+            away = game.get("awayTeam", {})
+            home_team = home.get("teamName")
+            away_team = away.get("teamName")
 
-            home_team = home.get("teamName", "") or ""
-            away_team = away.get("teamName", "") or ""
+            if team == home_team or team == away_team:
+                print("Requested team passed to fetch: ", team)
+                game_time = game.get("gameStatusText", "")
+                game_status = game.get("gameStatus", 0)
+                game_clock = game.get("gameClock", "")
 
-            # scores as ints
-            home_score_raw = home.get("score", 0) or 0
-            away_score_raw = away.get("score", 0) or 0
-            home_score_raw = int(home_score_raw)
-            away_score_raw = int(away_score_raw)
+                # scores as ints
+                home_score_raw = home.get("score", 0) or 0
+                away_score_raw = away.get("score", 0) or 0
+                home_score_raw = int(home_score_raw)
+                away_score_raw = int(away_score_raw)
 
-            period = int(game.get("period", 0) or 0)
+                period = int(game.get("period", 0) or 0)
 
-            # If requested team is home
-            print(home_team)
-            if home_team == team:
-                return home_score_raw, away_score_raw, away_team, game_clock, game_time, game_status, period
+                # If requested team is home
+                if home_team == team:
+                    return home_score_raw, away_score_raw, away_team, game_clock, game_time, game_status, period
 
-            # If requested team is away (swap so "home_score" is always your team)
-            if away_team == team:
-                return away_score_raw, home_score_raw, home_team, game_clock, game_time, game_status, period
-
-        return -1, -1, "unknown", "", "Scheduled", 1, 1
+                # If requested team is away (swap so "home_score" is always your team)
+                if away_team == team:
+                    return away_score_raw, home_score_raw, home_team, game_clock, game_time, game_status, period
 
     except Exception as e:
         print("Failed to fetch NBA games:", e)
@@ -121,7 +118,7 @@ def fetch_game(team):
 # Uses the team object to find the next game on the schedule using the NBA API.
 def get_next_game(team):
 
-    print("Getting next game on schedule.")
+    print("Getting next game on schedule for the following team: ", team)
 
     teams = {
         "Hawks": 1,
@@ -158,6 +155,9 @@ def get_next_game(team):
 
     team_id = teams.get(team)
     start_date = get_current_date()
+
+    print("team_id", team_id)
+    print("start_date", start_date)
 
     url = (
         "https://api.balldontlie.io/v1/games"
