@@ -886,7 +886,7 @@ def draw_date(game_date):
     except Exception as e:
         print("draw_date format error:", e)
 
-def draw_future_game(game_date, game_time, team, game_opponent):
+def draw_future_game(game_date, game_time, team, game_opponent, countdown):
     teams = {
         "Atlanta Hawks": hawks,
         "Boston Celtics": celtics,
@@ -927,10 +927,21 @@ def draw_future_game(game_date, game_time, team, game_opponent):
         print("Unknown opponent:", game_opponent)
         return
 
-    draw_logo(this_team, 0, 0, 0)
-    draw_logo(opponent_team, 0, 0, 1)
-    draw_date(game_date)
-    draw_clock(game_time)
+    if countdown == False:
+        draw_logo(this_team, 0, 0, 0)
+        draw_logo(opponent_team, 0, 0, 1)
+        draw_date(game_date)
+        draw_clock(game_time)
+
+    else:
+        draw_count_down()
+
+def draw_count_down():
+    mins = 60
+    secs = 60
+    for i in mins:
+        for j in secs:
+            draw_clock(f"{i}:{j}")
 
 
 def draw_city_menu():

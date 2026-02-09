@@ -75,7 +75,7 @@ def convert_utc_est(time_str):
 def fetch_game(team):
     try:
         # ONE request only
-        response = requests.get(NBA_SCOREBOARD_URL)
+        response = requests.get(TEST_SCOREBOARD_URL)
         data = response.json()
         response.close()
 
@@ -159,6 +159,7 @@ def get_next_game(team):
     print("team_id", team_id)
     print("start_date", start_date)
 
+
     url = (
         "https://api.balldontlie.io/v1/games"
         f"?team_ids[]={team_id}&start_date={start_date}"
@@ -168,55 +169,59 @@ def get_next_game(team):
         "Authorization": "Bearer 7b02b2a9-0b96-4f6f-9ab1-1b14f14abb9f"
     }
 
-    try:
-        response = requests.get(url, headers=headers)
-        raw_text = response.text
-        response.close()
+    attempts = 0
 
-
-        if not raw_text:
-            print("Empty response from server.")
-            return
-
+    while attempts < 5:
         try:
-            data = json.loads(raw_text)
+            response = requests.get(url, headers=headers)
+            raw_text = response.text
+            response.close()
+
+
+            if not raw_text:
+                print("Empty response from server.")
+                return
+
+            try:
+                data = json.loads(raw_text)
+            except Exception as e:
+                print("JSON parse error:", e)
+                print("Response was:", raw_text[:200])
+                return
+
+            if not isinstance(data, dict):
+                print("Data is not a dict.")
+                return
+
+            games = data.get("data")
+            if not isinstance(games, list):
+                print("Unexpected 'data' structure:", games)
+                return
+
+            if len(games) == 0:
+                print("No upcoming games found.")
+                return
+
+            game = games[0]
+
+            home_id = game["home_team"]["id"]
+            away_id = game["visitor_team"]["id"]
+            opponent = game["visitor_team"]
+            opp_name = opponent["full_name"]
+            team = game["home_team"]
+            team_name = team["full_name"]
+            date_str = game["date"]
+            time_str = game["datetime"]
+            
+            #"2025-01-05T23:00:00.000Z"
+            time_str = time_str[11:16]
+            time_str = convert_utc_est(time_str)
+
+            return date_str, time_str, team_name, opp_name
+
         except Exception as e:
-            print("JSON parse error:", e)
-            print("Response was:", raw_text[:200])
-            return
-
-        if not isinstance(data, dict):
-            print("Data is not a dict.")
-            return
-
-        games = data.get("data")
-        if not isinstance(games, list):
-            print("Unexpected 'data' structure:", games)
-            return
-
-        if len(games) == 0:
-            print("No upcoming games found.")
-            return
-
-        game = games[0]
-
-        home_id = game["home_team"]["id"]
-        away_id = game["visitor_team"]["id"]
-        opponent = game["visitor_team"]
-        opp_name = opponent["full_name"]
-        team = game["home_team"]
-        team_name = team["full_name"]
-        date_str = game["date"]
-        time_str = game["datetime"]
-        
-        #"2025-01-05T23:00:00.000Z"
-        time_str = time_str[11:16]
-        time_str = convert_utc_est(time_str)
-
-        return date_str, time_str, team_name, opp_name
-
-    except Exception as e:
-        print("Failed to retrieve next game:", e)
+            attempts =+ 1
+            time.sleep(0.1)
 
 
 
@@ -263,6 +268,8 @@ def clock_str_to_secs(clock_str):
     
     if ":" in clock_str:
         parts = clock_str.split(":")
+        parts = [part.split(" ", 1)[0] for part in parts]
+        print(parts)
         if len(parts) == 2:
             try:
                 minutes = int(parts[0] or 0)
@@ -271,5 +278,6 @@ def clock_str_to_secs(clock_str):
                 return minutes * 60 + seconds
             except ValueError:
                 return None
+        
             
     return None

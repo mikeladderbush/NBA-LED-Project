@@ -177,7 +177,9 @@ next_tick = time.monotonic() + 1.0
 
 # Initial fetch
 t0 = time.monotonic()
+print("break-point: 1")
 home_score, away_score, opponent_str, clock_str, game_time, game_status, period = fetch_game(team.team_name)
+print("break-point: 2")
 t1 = time.monotonic()
 print("Fetched game, values gathered: ", home_score, away_score, opponent_str, clock_str, game_time, game_status, period)
 latest_frame = TimeFrame(team, home_score, away_score, opponent_str, clock_str, game_time, game_status, period)
@@ -249,10 +251,16 @@ while True:
                 last_tick = now
                 in_game = True
 
-        draw_future_game(date_str, time_str, next_team_full, next_opp_full)
+        game_time_as_secs = clock_str_to_secs(game_time)
+        print(game_time_as_secs)
+        if game_time_as_secs - now == 60:
+            countdown = True
+        else:
+            countdown = False
+
+        draw_future_game(date_str, time_str, next_team_full, next_opp_full, countdown)
 
         draw_columns(background_bitmap, 0, 32, 64, 4)   # type: ignore
         draw_columns(background_bitmap, 32, 32, 64, 3)  # type: ignore
         draw_row_singular(decal_bitmap, 64, 46, 2)      # type: ignore
 
-    time.sleep(0.01)
