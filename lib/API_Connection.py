@@ -75,9 +75,11 @@ def convert_utc_est(time_str):
 def fetch_game(team):
     try:
         # ONE request only
-        response = requests.get(TEST_SCOREBOARD_URL)
+        response = requests.get(NBA_SCOREBOARD_URL)
         data = response.json()
         response.close()
+
+        print(data)
 
         games = data.get("scoreboard", {}).get("games", [])
         for game in games:
