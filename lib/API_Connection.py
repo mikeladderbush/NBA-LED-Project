@@ -173,6 +173,8 @@ def get_next_game(team):
 
     attempts = 0
 
+    print("attempting API get")
+
     while attempts < 5:
         try:
             response = requests.get(url, headers=headers)
