@@ -35,21 +35,27 @@ TEST_SCOREBOARD_URL = "http://192.168.1.165:5000/fake_clock"
 
 # Uses Adafruits NTP to get the current hours and minutes and returns them in the proper string format.
 def get_current_time():
-    # struct_time(tm_year=2025, tm_mon=12, tm_mday=19, tm_hour=23, tm_min=1, tm_sec=11, tm_wday=4, tm_yday=353, tm_isdst=-1)
-    ntp = adafruit_ntp.NTP(pool, tz_offset=-5, socket_timeout=20)
-    hours = ntp.datetime.tm_hour
-    mins = ntp.datetime.tm_min
+    try:
+        # struct_time(tm_year=2025, tm_mon=12, tm_mday=19, tm_hour=23, tm_min=1, tm_sec=11, tm_wday=4, tm_yday=353, tm_isdst=-1)
+        ntp = adafruit_ntp.NTP(pool, tz_offset=-5, socket_timeout=20)
+        hours = ntp.datetime.tm_hour
+        mins = ntp.datetime.tm_min
+    except Exception as e:
+        print("Failed to get current time", e)
 
     return f"{hours}:{mins}"
 
 
 # Uses Adafruits NTP to ge tthe current date and returns it in string format.
 def get_current_date():
-    # struct_time(tm_year=2025, tm_mon=12, tm_mday=19, tm_hour=23, tm_min=1, tm_sec=11, tm_wday=4, tm_yday=353, tm_isdst=-1)
-    ntp = adafruit_ntp.NTP(pool, tz_offset=-5, socket_timeout=20)
-    year = int(ntp.datetime.tm_year)
-    mon = int(ntp.datetime.tm_mon)
-    day = int(ntp.datetime.tm_mday)
+    try:
+        # struct_time(tm_year=2025, tm_mon=12, tm_mday=19, tm_hour=23, tm_min=1, tm_sec=11, tm_wday=4, tm_yday=353, tm_isdst=-1)
+        ntp = adafruit_ntp.NTP(pool, tz_offset=-5, socket_timeout=20)
+        year = int(ntp.datetime.tm_year)
+        mon = int(ntp.datetime.tm_mon)
+        day = int(ntp.datetime.tm_mday)
+    except Exception as e:
+        print("Failed to get current date", e)
 
     return f"{year:04d}-{mon:02d}-{day:02d}"
 
@@ -78,8 +84,6 @@ def fetch_game(team):
         response = requests.get(NBA_SCOREBOARD_URL)
         data = response.json()
         response.close()
-
-        print(data)
 
         games = data.get("scoreboard", {}).get("games", [])
         for game in games:
@@ -135,8 +139,8 @@ def get_next_game(team):
         "Warriors": 10,
         "Rockets": 11,
         "Pacers": 12,
-        "Lakers": 13,
-        "Clippers": 14,
+        "Clippers": 13,
+        "Lakers": 14,
         "Grizzlies": 15,
         "Heat": 16,
         "Bucks": 17,
@@ -224,7 +228,7 @@ def get_next_game(team):
             return date_str, time_str, team_name, opp_name
 
         except Exception as e:
-            attempts =+ 1
+            attempts += 1
             time.sleep(0.1)
 
 
