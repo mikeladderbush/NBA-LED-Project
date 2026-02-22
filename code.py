@@ -51,8 +51,8 @@ DBG_WARN_FETCH_SLOW = 2.0    # seconds
 
 # TimeFrame object is used to track a single point in time and the associated game attributes.
 class TimeFrame:
-    def __init__(self, team_name: nba_team, home_score, away_score, opponent, clock, game_time, game_status, period):
-        self.team_name = team_name
+    def __init__(self, team: nba_team, home_score, away_score, opponent, clock, game_time, game_status, period):
+        self.team = team
         self.home_score = home_score
         self.away_score = away_score
         self.opponent = opponent
@@ -64,9 +64,8 @@ class TimeFrame:
 
 # Draws the current TimeFrame using the draw_tools methods.
 def draw_frame(frame: TimeFrame):
-    team: nba_team = frame.team_name
-    draw_logo(team, 0, 0, 0)
-
+    home = frame.team
+    draw_logo(home, 0, 0, 0)
     opp = team_from_string(frame.opponent.lower())
     if opp is not None:
         draw_logo(opp, 0, 0, 1)
@@ -151,6 +150,8 @@ while menu_active:
             server_state["team"] = None
             break
 
+    if server_state["power"] == "off":
+        microcontroller.reset()
     draw_city_menu()
 
 clear_area(letter_bitmap, 0, 0, 64, 64)
@@ -170,6 +171,12 @@ clock_str = None
 game_time = None
 game_status = None 
 period = None
+in_game = None
+
+date_str = None
+time_str = None
+next_team_full = None
+next_opp_full = None
 
 next_tick = time.monotonic() + 1.0
 
@@ -177,11 +184,14 @@ next_tick = time.monotonic() + 1.0
 t0 = time.monotonic()
 print("break-point: 1")
 try:
+    if team == sixers:
+        team.team_name = "76ers"
     home_score, away_score, opponent_str, clock_str, game_time, game_status, period = fetch_game(team.team_name)
     print("break-point: 2")
     t1 = time.monotonic()
     print("Fetched game, values gathered: ", home_score, away_score, opponent_str, clock_str, game_time, game_status, period)
     latest_frame = TimeFrame(team, home_score, away_score, opponent_str, clock_str, game_time, game_status, period)
+    print(latest_frame.team.team_name)
     target_secs = clock_str_to_secs(clock_str)
 except Exception as e:
     print("Live fetch had no games", e)
@@ -194,7 +204,8 @@ if latest_frame == None:
     date_str, time_str, next_team_full, next_opp_full = get_next_game(team.team_name)
     in_game = False
 else:
-    in_game = True
+    if latest_frame.game_status > 1:
+        in_game = True
 
 while True:
 
@@ -205,8 +216,12 @@ while True:
         print("In game poll")
         # Poll API occasionally
         if now - last_api_call > LIVE_POLL_SECS:
+            if server_state["power"] == "off":
+                microcontroller.reset()
+            if latest_frame.team == sixers:
+                latest_frame.team.team_name = "76ers"
             fetch_start = time.monotonic()
-            home_score, away_score, opponent_str, clock_str, game_time, game_status, period = fetch_game(latest_frame.team_name)
+            home_score, away_score, opponent_str, clock_str, game_time, game_status, period = fetch_game(latest_frame.team.team_name)
             fetch_end = time.monotonic()
             fetch_dt = fetch_end - fetch_start
 
@@ -220,9 +235,9 @@ while True:
                 if display_secs is None:
                     display_secs = target_secs + DELAY_SECS
 
-            if game_status != 1:
+            if game_status < 1:
                 in_game = False
-                date_str, time_str, next_team_full, next_opp_full = get_next_game(latest_frame.team_name)
+                date_str, time_str, next_team_full, next_opp_full = get_next_game(latest_frame.team.team_name)
 
         # Local 1Hz tick
         if display_secs is not None and target_secs is not None:
@@ -244,6 +259,8 @@ while True:
     else:
         print("Out of game poll")
         if now - last_api_call > SCHED_POLL_SECS:
+            if server_state["power"] == "off":
+                microcontroller.reset()
             try:
                 fetch_start = time.monotonic()
                 home_score, away_score, opponent_str, clock_str, game_time, game_status, period = fetch_game(team.team_name)
@@ -251,8 +268,8 @@ while True:
                 fetch_dt = fetch_end - fetch_start
                 last_api_call = now
 
-                if game_status != 1:
-                    latest_frame = TimeFrame(team, home_score, away_score, opponent_str, clock_str, game_time, game_status, period)
+                if game_status >= 1:
+                    latest_frame = TimeFrame(team.team_name, home_score, away_score, opponent_str, clock_str, game_time, game_status, period)
                     target_secs = clock_str_to_secs(clock_str)
                     if target_secs is not None:
                         display_secs = target_secs + DELAY_SECS
@@ -272,6 +289,8 @@ while True:
 
         while draw_delay > 0:
             server.poll()
+            if date_str == None:
+                date_str, time_str, next_team_full, next_opp_full = get_next_game(latest_frame.team.team_name)
             draw_future_game(date_str, time_str, next_team_full, next_opp_full, countdown)
             draw_delay -= 1
             if server_state["power"] == "off":
@@ -280,4 +299,3 @@ while True:
         draw_columns(background_bitmap, 0, 32, 64, 4)   # type: ignore
         draw_columns(background_bitmap, 32, 32, 64, 3)  # type: ignore
         draw_row_singular(decal_bitmap, 64, 46, 2)      # type: ignore
-

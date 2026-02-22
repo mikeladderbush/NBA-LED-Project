@@ -8,12 +8,45 @@ server_state = {"power": "off", "team":None}
 
 def run_server():
 
+
+
     print("Starting Server")
 
     pool = socketpool.SocketPool(wifi.radio)
     server = Server(pool, "/static", debug=True)
 
     # ---------- ROUTES ----------
+
+    @server.route("/")
+    def index(request: Request):
+        html = """
+        <html>
+        <head>
+            <title>Scoreboard Control</title>
+        </head>
+        <body style="font-family:sans-serif;text-align:center;margin-top:40px">
+
+            <h2>Scoreboard Control</h2>
+
+            <button onclick="fetch('/on')">Power On</button>
+            <button onclick="fetch('/off')">Power Off</button>
+
+            <br><br>
+
+            <input id="teamBox" placeholder="Enter Team (ex: BOS)">
+            <button onclick="setTeam()">Set Team</button>
+
+            <script>
+            function setTeam(){
+                let t = document.getElementById("teamBox").value;
+                fetch("/team?name=" + t);
+            }
+            </script>
+
+        </body>
+        </html>
+        """
+        return Response(request, html, content_type="text/html")
 
     @server.route("/on")
     def on(request: Request):
@@ -30,6 +63,7 @@ def run_server():
     @server.route("/team")
     def team(request: Request):
         name = request.query_params.get("name")
+        name = name.upper()
         server_state["team"] = name
         return Response(request, f"Team set to {name}")
 

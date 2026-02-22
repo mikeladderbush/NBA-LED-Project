@@ -149,7 +149,7 @@ def get_next_game(team):
         "Knicks": 20,
         "Thunder": 21,
         "Magic": 22,
-        "76ers": 23,
+        "Sixers": 23,
         "Suns": 24,
         "Blazers": 25,
         "Kings": 26,
@@ -188,27 +188,27 @@ def get_next_game(team):
 
             if not raw_text:
                 print("Empty response from server.")
-                return
+                return None, None, None, None
 
             try:
                 data = json.loads(raw_text)
             except Exception as e:
                 print("JSON parse error:", e)
                 print("Response was:", raw_text[:200])
-                return
+                return None, None, None, None
 
             if not isinstance(data, dict):
                 print("Data is not a dict.")
-                return
+                return None, None, None, None
 
             games = data.get("data")
             if not isinstance(games, list):
                 print("Unexpected 'data' structure:", games)
-                return
+                return None, None, None, None
 
             if len(games) == 0:
                 print("No upcoming games found.")
-                return
+                return None, None, None, None
 
             game = games[0]
 
