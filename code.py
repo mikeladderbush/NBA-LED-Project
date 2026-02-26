@@ -290,7 +290,7 @@ while True:
         while draw_delay > 0:
             server.poll()
             if date_str == None:
-                date_str, time_str, next_team_full, next_opp_full = get_next_game(latest_frame.team.team_name)
+                date_str, time_str, next_team_full, next_opp_full = get_next_game(latest_frame.team)
             draw_future_game(date_str, time_str, next_team_full, next_opp_full, countdown)
             draw_delay -= 1
             if server_state["power"] == "off":
