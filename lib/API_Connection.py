@@ -27,6 +27,8 @@ requests = adafruit_requests.Session(pool, ssl_context)
 
 BUFFER_SECS = 180
 
+DAY_LIGHT_SAVINGS = True
+
 # NBA scoreboard API endpoint URL.
 NBA_SCOREBOARD_URL = "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json"
 
@@ -40,6 +42,12 @@ def get_current_time():
         ntp = adafruit_ntp.NTP(pool, tz_offset=-5, socket_timeout=20)
         hours = ntp.datetime.tm_hour
         mins = ntp.datetime.tm_min
+        if ntp.tm_mon > 3 and ntp.tm_mon < 11:
+            if ntp.tm_mday > 14:
+                DAY_LIGHT_SAVINGS = True
+        else:
+            DAY_LIGHT_SAVINGS = False
+
     except Exception as e:
         print("Failed to get current time", e)
 
@@ -68,6 +76,8 @@ def convert_utc_est(time_str):
     minutes = parts[1]
     hours_int = int(hours)
     hours_int = (hours_int - 5) % 12
+    if DAY_LIGHT_SAVINGS == True:
+        hours = hours + 1
     hours = str(hours_int)
 
     est_time_str = hours + ":" + minutes
@@ -229,7 +239,7 @@ def get_next_game(team):
 
         except Exception as e:
             attempts += 1
-            time.sleep(0.1)
+            time.sleep(1)
 
 
 

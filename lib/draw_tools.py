@@ -704,6 +704,16 @@ def draw_Y(x, y, size):
 
     draw_sprite(letter_bitmap, x, y, 4, 5, size, pattern, letter_palette, bg_index=0, draw_bg=True)   
 
+def draw_blank_number(x, y, size):
+    pattern = (
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+    )
+    draw_sprite(decal_bitmap, x, y, 4, 5, size, pattern, decal_palette, bg_index=0, draw_bg=True)
+
 # Draws the team logos on the display.
 # The 'home_or_away' parameter determines the logo position on the bitmap.
 def draw_logo(team, x, y, home_or_away):
@@ -785,70 +795,68 @@ def format_clock(clock_str):
 
 def draw_clock(clock_str):
     if not isinstance(clock_str, str) or not clock_str:
-        clock_str = "12:00"  # Default fallback
-    
-    # Case 1: Format is PT-style (NBA game clock)
+        clock_str = "12:00 PM"
+
+    # Case 1: PT-style NBA game clock
     if "PT" in clock_str:
         clock_str = format_clock(clock_str)
 
-    # Case 2: Convert "HH:MM UTC" or "HH:MM" (24-hour format) to AM/PM
+    # Case 2: UTC 24-hour → AM/PM
     if "UTC" in clock_str:
         try:
             clock_str = clock_str.replace(" UTC", "")
             hour, minute = map(int, clock_str.split(":"))
             am_pm = "AM" if hour < 12 else "PM"
-            hour = hour % 12
-            if hour == 0:
-                hour = 12
+            hour = hour % 12 or 12
             clock_str = f"{hour:02d}:{minute:02d} {am_pm}"
         except ValueError as e:
             print("UTC/24-hour time parse error:", e)
             clock_str = "12:00 PM"
 
-    # Case 3: AM/PM Clock
-    if "AM" in clock_str or "PM" in clock_str:
-        try:
-            time, am_pm = clock_str.split()
-            hours, minutes = map(int, time.split(":"))
+    clock_upper = clock_str.upper()
 
-            draw_number(hours // 10, 9, 34, 2) if hours >= 10 else None
-            draw_number(hours % 10, 13, 34, 2)
-            draw_colon(21, 34, 2)
-            draw_number(minutes // 10, 24, 34, 2)
-            draw_number(minutes % 10, 32, 34, 2)
+    # Case 3: AM/PM schedule time
+    if "AM" in clock_upper or "PM" in clock_upper:
+        try:
+            time_part, am_pm = clock_upper.split()
+            hours, minutes = map(int, time_part.split(":"))
+
+            if hours >= 10:
+                draw_number(hours // 10, 9, 34, 2)
+            else:
+                draw_blank_number(9, 34, 2)
+            draw_number(hours % 10, 17, 34, 2)
+            draw_colon(25, 34, 2)
+            draw_number(minutes // 10, 31, 34, 2)
+            draw_number(minutes % 10, 39, 34, 2)
 
             if am_pm == "AM":
-                draw_a(40, 39, 1)
+                draw_a(47, 39, 1)
             else:
-                draw_p(40, 39, 1)
+                draw_p(47, 39, 1)
         except ValueError as e:
             print("AM/PM time format error:", e)
 
-    # Case 4: MM:SS Game Clock
+    # Case 4: MM:SS game clock
     else:
         try:
-            # Normalize clock_str if it starts with colon (e.g., ":06.0")
             if clock_str.startswith(":"):
                 clock_str = "0" + clock_str
-            # Truncate fractional seconds if present
             if "." in clock_str:
                 clock_str = clock_str.split(".")[0]
 
             minutes, seconds = map(int, clock_str.split(":"))
+
             if minutes >= 10:
-                draw_number(minutes // 10, 12, 34, 2)
-            draw_number(minutes % 10, 20, 34, 2)
-            draw_colon(28, 34, 2)
-            draw_number(seconds // 10, 32, 34, 2)
-            draw_number(seconds % 10, 40, 34, 2)
+                draw_number(minutes // 10, 9, 34, 2)
+            else:
+                draw_blank_number(9, 34, 2)
+            draw_number(minutes % 10, 17, 34, 2)
+            draw_colon(25, 34, 2)
+            draw_number(seconds // 10, 31, 34, 2)
+            draw_number(seconds % 10, 39, 34, 2)
         except ValueError as e:
             print("MM:SS time format error:", e)
-            # Draw fallback clock
-            draw_number(1, 9, 34, 2)
-            draw_number(2, 13, 34, 2)
-            draw_colon(21, 34, 2)
-            draw_number(0, 24, 34, 2)
-            draw_number(0, 32, 34, 2)
 
 
 # Draws the game date on the display.
@@ -920,8 +928,19 @@ def draw_future_game(game_date, game_time, team, game_opponent, countdown):
         "Washington Wizards": wizards
     }
 
-    this_team = teams.get(team)
-    opponent_team = teams.get(game_opponent)
+    def resolve_team(name):
+        if name in teams:
+            return teams[name]
+        if "blaz" in name.lower():
+            return trail_blazers
+        last_word = name.split()[-1]
+        for full_name, obj in teams.items():
+            if full_name.split()[-1] == last_word:
+                return obj
+        return None
+
+    this_team = resolve_team(team)
+    opponent_team = resolve_team(game_opponent)
 
     if opponent_team is None:
         print("Unknown opponent:", game_opponent)
@@ -931,7 +950,7 @@ def draw_future_game(game_date, game_time, team, game_opponent, countdown):
         draw_logo(this_team, 0, 0, 0)
         draw_logo(opponent_team, 0, 0, 1)
         draw_date(game_date)
-        draw_clock(game_time)
+        draw_clock(normalize_game_time(game_time))
 
     else:
         draw_count_down()
@@ -942,6 +961,17 @@ def draw_count_down():
     for i in mins:
         for j in secs:
             draw_clock(f"{i}:{j}")
+
+def normalize_game_time(time_str):
+    if not time_str:
+        return "12:00 PM"
+    t = time_str.strip().upper()       
+    t = t.replace(" ET", "").replace(" EST", "").replace(" EDT", "")  # "8:00 PM"
+    parts = t.split()
+    if len(parts) == 2:
+        h, m = parts[0].split(":")
+        return f"{int(h):02d}:{m} {parts[1]}"
+    return time_str            
 
 
 def draw_city_menu():

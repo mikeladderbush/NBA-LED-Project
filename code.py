@@ -178,6 +178,8 @@ time_str = None
 next_team_full = None
 next_opp_full = None
 
+frame_present = False
+
 next_tick = time.monotonic() + 1.0
 
 # Initial fetch
@@ -203,14 +205,24 @@ if latest_frame == None:
     print("Falling back to next scheduled game:")
     date_str, time_str, next_team_full, next_opp_full = get_next_game(team.team_name)
     in_game = False
+elif latest_frame.game_status > 1:
+    in_game = True
 else:
-    if latest_frame.game_status > 1:
-        in_game = True
+    in_game = False
+    date_str = get_current_date()
+    time_str = latest_frame.game_time
+    next_team_full = latest_frame.team.team_name
+    next_opp_full = latest_frame.opponent
+
+start_time = time.monotonic()
 
 while True:
 
     server.poll()        
     now = time.monotonic()
+
+    if now - start_time > 14400:  # 4 hours
+        microcontroller.reset()
 
     if in_game:
         print("In game poll")
