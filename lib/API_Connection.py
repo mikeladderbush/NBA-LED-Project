@@ -35,56 +35,55 @@ NBA_SCOREBOARD_URL = "https://cdn.nba.com/static/json/liveData/scoreboard/todays
 TEST_SCOREBOARD_URL_INIT = "http://192.168.1.165:5000/fake_clock_init"
 TEST_SCOREBOARD_URL = "http://192.168.1.165:5000/fake_clock"
 
+# Setting up NTP time sync
+_boot_epoch = None
+_boot_mono = None
+
 # Uses Adafruits NTP to get the current hours and minutes and returns them in the proper string format.
+
+def sync_time(pool, retries=3):
+    global _boot_epoch, _boot_mono
+    for _ in range(retries):
+        try:
+            ntp = adafruit_ntp.NTP(pool, tz_offset=-5, socket_timeout=5,
+                                   server="time.cloudflare.com")
+            t = ntp.datetime
+            _boot_epoch = time.mktime(t)
+            _boot_mono = time.monotonic()
+            return True
+        except Exception as e:
+            print("NTP sync failed:", e)
+            time.sleep(2)
+    return False
+
+def now_struct():
+    if _boot_epoch is None:
+        return None
+    secs = _boot_epoch + (time.monotonic() - _boot_mono)
+    return time.localtime(int(secs))
+
 def get_current_time():
-    try:
-        # struct_time(tm_year=2025, tm_mon=12, tm_mday=19, tm_hour=23, tm_min=1, tm_sec=11, tm_wday=4, tm_yday=353, tm_isdst=-1)
-        ntp = adafruit_ntp.NTP(pool, tz_offset=-5, socket_timeout=20)
-        hours = ntp.datetime.tm_hour
-        mins = ntp.datetime.tm_min
-        if ntp.tm_mon > 3 and ntp.tm_mon < 11:
-            if ntp.tm_mday > 14:
-                DAY_LIGHT_SAVINGS = True
-        else:
-            DAY_LIGHT_SAVINGS = False
+    t = now_struct()
+    return f"{t.tm_hour:02d}:{t.tm_min:02d}" if t else "00:00"
 
-    except Exception as e:
-        print("Failed to get current time", e)
-
-    return f"{hours}:{mins}"
-
-
-# Uses Adafruits NTP to ge tthe current date and returns it in string format.
 def get_current_date():
-    try:
-        # struct_time(tm_year=2025, tm_mon=12, tm_mday=19, tm_hour=23, tm_min=1, tm_sec=11, tm_wday=4, tm_yday=353, tm_isdst=-1)
-        ntp = adafruit_ntp.NTP(pool, tz_offset=-5, socket_timeout=20)
-        year = int(ntp.datetime.tm_year)
-        mon = int(ntp.datetime.tm_mon)
-        day = int(ntp.datetime.tm_mday)
-    except Exception as e:
-        print("Failed to get current date", e)
+    t = now_struct()
+    return f"{t.tm_year:04d}-{t.tm_mon:02d}-{t.tm_mday:02d}" if t else "0000-00-00"
 
-    return f"{year:04d}-{mon:02d}-{day:02d}"
-
-
-# Takes in the UTC time string and converts it into an Eastern Standard Time string.
 def convert_utc_est(time_str):
-
     parts = time_str.split(":")
-    hours = parts[0]
+    hours_int = int(parts[0])
     minutes = parts[1]
-    hours_int = int(hours)
-    hours_int = (hours_int - 5) % 12
-    if DAY_LIGHT_SAVINGS == True:
-        hours = hours + 1
-    hours = str(hours_int)
 
-    est_time_str = hours + ":" + minutes
+    offset = -4 if DAY_LIGHT_SAVINGS else -5
+    hours_int = (hours_int + offset) % 24
 
-    return est_time_str
+    period = "AM" if hours_int < 12 else "PM"
+    hours_12 = hours_int % 12
+    if hours_12 == 0:
+        hours_12 = 12  # midnight/noon edge case
 
-
+    return f"{hours_12}:{minutes} {period}"
 
 # This method uses the team object provided by the main method to parse and compare the scoreboard provided by the NBA API. 
 # The JSON provided by the NBA API is checked and the necessary team attributes are returned. 
@@ -194,7 +193,6 @@ def get_next_game(team):
             response = requests.get(url, headers=headers)
             raw_text = response.text
             response.close()
-
 
             if not raw_text:
                 print("Empty response from server.")

@@ -35,6 +35,9 @@ except Exception as e:
     print("WiFi connection failed:", e)
     microcontroller.reset()
 
+from API_Connection import sync_time, pool
+if not sync_time(pool):
+    print("Time sync failed — date/time will be unavailable")
 
 server, server_state = run_server()
 
@@ -192,6 +195,7 @@ try:
     print("break-point: 2")
     t1 = time.monotonic()
     print("Fetched game, values gathered: ", home_score, away_score, opponent_str, clock_str, game_time, game_status, period)
+
     latest_frame = TimeFrame(team, home_score, away_score, opponent_str, clock_str, game_time, game_status, period)
     print(latest_frame.team.team_name)
     target_secs = clock_str_to_secs(clock_str)
@@ -205,7 +209,7 @@ if latest_frame == None:
     print("Falling back to next scheduled game:")
     date_str, time_str, next_team_full, next_opp_full = get_next_game(team.team_name)
     in_game = False
-elif latest_frame.game_status > 1:
+elif latest_frame.game_status in (1, 2):
     in_game = True
 else:
     in_game = False
@@ -214,18 +218,20 @@ else:
     next_team_full = latest_frame.team.team_name
     next_opp_full = latest_frame.opponent
 
-start_time = time.monotonic()
+last_sync = time.monotonic()
+SYNC_INTERVAL = 3600  # 1 hour
 
 while True:
-
+    if time.monotonic() - last_sync > SYNC_INTERVAL:
+        sync_time(pool)
+        last_sync = time.monotonic()
     server.poll()        
     now = time.monotonic()
 
-    if now - start_time > 14400:  # 4 hours
+    if now - last_sync > 14400:  # 4 hours
         microcontroller.reset()
 
     if in_game:
-        print("In game poll")
         # Poll API occasionally
         if now - last_api_call > LIVE_POLL_SECS:
             if server_state["power"] == "off":
@@ -269,7 +275,6 @@ while True:
             draw_frame(latest_frame)
 
     else:
-        print("Out of game poll")
         if now - last_api_call > SCHED_POLL_SECS:
             if server_state["power"] == "off":
                 microcontroller.reset()
@@ -297,12 +302,20 @@ while True:
         #    countdown = True
         # else:
         countdown = False
-        draw_delay = 5000
+        date_str, time_str, next_team_full, next_opp_full = get_next_game(latest_frame.team)
+        
+        if next_team_full is None:
+            print("Could not fetch next game, skipping draw")
+            time.sleep(60)
+            continue
 
+        if time_str and time_str.strip() == "Final":
+            time_str = "12:00"
+
+
+        draw_delay = 5000
         while draw_delay > 0:
             server.poll()
-            if date_str == None:
-                date_str, time_str, next_team_full, next_opp_full = get_next_game(latest_frame.team)
             draw_future_game(date_str, time_str, next_team_full, next_opp_full, countdown)
             draw_delay -= 1
             if server_state["power"] == "off":
