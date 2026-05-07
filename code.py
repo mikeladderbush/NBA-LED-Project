@@ -302,7 +302,7 @@ while True:
         #    countdown = True
         # else:
         countdown = False
-        date_str, time_str, next_team_full, next_opp_full = get_next_game(latest_frame.team)
+        date_str, time_str, next_team_full, next_opp_full = get_next_game(team.team_name)
         
         if next_team_full is None:
             print("Could not fetch next game, skipping draw")
@@ -311,7 +311,6 @@ while True:
 
         if time_str and time_str.strip() == "Final":
             time_str = "12:00"
-
 
         draw_delay = 5000
         while draw_delay > 0:
