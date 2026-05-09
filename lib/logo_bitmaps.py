@@ -64,16 +64,16 @@ group.append(tilegrid_celtics)
 
 
 
-# CAVS
-cavs_logo_bitmap = displayio.Bitmap(display.width, display.height, 16)
-cavs_logo_palette = displayio.Palette(5)
-cavs_logo_palette.make_transparent(0)
-cavs_logo_palette[1] = 0x000033 #wine red
-cavs_logo_palette[2] = 0x0099CC #gold
-cavs_logo_palette[3] = 0x041E42 #navy
-cavs_logo_palette[4] = 0x000000 #black
-tilegrid_cavs = displayio.TileGrid(cavs_logo_bitmap, pixel_shader=cavs_logo_palette)
-group.append(tilegrid_cavs)
+# cavaliers
+cavaliers_logo_bitmap = displayio.Bitmap(display.width, display.height, 16)
+cavaliers_logo_palette = displayio.Palette(5)
+cavaliers_logo_palette.make_transparent(0)
+cavaliers_logo_palette[1] = 0x000033 #wine red
+cavaliers_logo_palette[2] = 0x0099CC #gold
+cavaliers_logo_palette[3] = 0x041E42 #navy
+cavaliers_logo_palette[4] = 0x000000 #black
+tilegrid_cavaliers = displayio.TileGrid(cavaliers_logo_bitmap, pixel_shader=cavaliers_logo_palette)
+group.append(tilegrid_cavaliers)
 
 
 

@@ -88,6 +88,7 @@ def convert_utc_est(time_str):
 # This method uses the team object provided by the main method to parse and compare the scoreboard provided by the NBA API. 
 # The JSON provided by the NBA API is checked and the necessary team attributes are returned. 
 def fetch_game(team):
+    print(team)
     try:
         # ONE request only
         response = requests.get(NBA_SCOREBOARD_URL)

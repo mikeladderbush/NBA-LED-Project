@@ -95,7 +95,7 @@ ABBR_TO_TEAMKEY = {
     "BOS": celtics,
     "CHA": hornets,
     "CHI": bulls,
-    "CLE": cavs,
+    "CLE": cavaliers,
     "DAL": mavericks,
     "DEN": nuggets,
     "DET": pistons,
@@ -234,6 +234,7 @@ while True:
     if in_game:
         # Poll API occasionally
         if now - last_api_call > LIVE_POLL_SECS:
+            last_api_call = now
             if server_state["power"] == "off":
                 microcontroller.reset()
             if latest_frame.team == sixers:

@@ -27,7 +27,7 @@ celtics = nba_team("Celtics", celtics_logo_bitmap, celtics_logo_palette, celtics
 nets = nba_team("Nets", nets_logo_bitmap, nets_logo_palette, nets_pattern)
 hornets = nba_team("Hornets", hornets_logo_bitmap, hornets_logo_palette, hornets_pattern)
 bulls = nba_team("Bulls", bulls_logo_bitmap, bulls_logo_palette, bulls_pattern)
-cavs = nba_team("Cavs", cavs_logo_bitmap, cavs_logo_palette, cavs_pattern)
+cavaliers = nba_team("Cavaliers", cavaliers_logo_bitmap, cavaliers_logo_palette, cavaliers_pattern)
 pistons = nba_team("Pistons", pistons_logo_bitmap, pistons_logo_palette, pistons_pattern)
 pacers = nba_team("Pacers", pacers_logo_bitmap, pacers_logo_palette, pacers_pattern)
 heat = nba_team("Heat", heat_logo_bitmap, heat_logo_palette, heat_pattern)
@@ -63,7 +63,7 @@ def team_from_string(team_name) -> nba_team:
         "nets": nets,
         "hornets": hornets,
         "bulls": bulls,
-        "cavaliers": cavs,
+        "cavaliers": cavaliers,
         "mavericks": mavericks,
         "nuggets": nuggets,
         "pistons": pistons,
@@ -901,7 +901,7 @@ def draw_future_game(game_date, game_time, team, game_opponent, countdown):
         "Brooklyn Nets": nets,
         "Charlotte Hornets": hornets,
         "Chicago Bulls": bulls,
-        "Cleveland Cavaliers": cavs,
+        "Cleveland Cavaliers": cavaliers,
         "Dallas Mavericks": mavericks,
         "Denver Nuggets": nuggets,
         "Detroit Pistons": pistons,
